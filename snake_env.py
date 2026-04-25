@@ -6,7 +6,7 @@ import numpy as np
 UP, RIGHT, DOWN, LEFT = 0, 1, 2, 3
 
 CELL_SIZE = 25
-FPS = 3
+FPS = 60
 
 class SnakeEnv:
     def __init__(self, width=20, height=20, render_mode=True):

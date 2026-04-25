@@ -15,10 +15,10 @@ class HumanAgent:
 
         desired = self.env.direction
 
-        if keys[pygame.K_UP]:    desired = UP
-        if keys[pygame.K_DOWN]:  desired = DOWN
-        if keys[pygame.K_LEFT]:  desired = LEFT
-        if keys[pygame.K_RIGHT]: desired = RIGHT
+        if keys[pygame.K_w]:    desired = UP
+        if keys[pygame.K_s]:  desired = DOWN
+        if keys[pygame.K_a]:  desired = LEFT
+        if keys[pygame.K_d]: desired = RIGHT
 
         cur = self.env.direction
 
