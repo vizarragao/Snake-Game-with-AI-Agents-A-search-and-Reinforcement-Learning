@@ -42,26 +42,56 @@ class SnakeEnv:
                 break
 
     def step(self, action):
-        # action: 0=STRAIGHT, 1=LEFT, 2=RIGHT
+        # 0 = straight, 1 = left, 2 = right
         self._update_direction(action)
+
+        old_head = self.snake[0]
+        old_dist = abs(old_head[0] - self.food[0]) + abs(old_head[1] - self.food[1])
+
         new_head = self._next_head_pos()
 
-        reward = -0.01
+        reward = 0.0
+
+        # -------------------------
+        # Death check
+        # -------------------------
         if self._is_collision(new_head):
             self.done = True
-            reward = -10
-            return self._get_state(), reward, True, {}
+            reward = -30      # strong penalty
+            return self.get_state(), reward, True, {}
 
+        # -------------------------
+        # Move snake
+        # -------------------------
         self.snake.insert(0, new_head)
 
+        # -------------------------
+        # Food eaten
+        # -------------------------
         if new_head == self.food:
-            reward = 10
+            reward = 20       # strong reward
             self.score += 1
             self._place_food()
         else:
             self.snake.pop()
 
-        return self._get_state(), reward, False, {}
+        # -------------------------
+        # Distance-based shaping
+        # -------------------------
+        new_dist = abs(new_head[0] - self.food[0]) + abs(new_head[1] - self.food[1])
+
+        if new_dist < old_dist:
+            reward += 0.2     # moved closer
+        else:
+            reward -= 0.2     # moved away
+
+        # -------------------------
+        # Survival reward
+        # -------------------------
+        reward += 0.01
+
+        return self.get_state(), reward, False, {}
+
 
     def _update_direction(self, action):
         if action == 1:  # left
@@ -117,6 +147,40 @@ class SnakeEnv:
             + self._food_direction(),
             dtype=np.float32,
         )
+    
+    def get_state(self):
+        head_x, head_y = self.snake[0]
+        food_x, food_y = self.food
+
+        # Danger straight
+        danger_straight = int(self._is_collision(self._next_head_pos()))
+
+        # Danger left
+        self.direction = (self.direction - 1) % 4
+        danger_left = int(self._is_collision(self._next_head_pos()))
+        self.direction = (self.direction + 1) % 4
+
+        # Danger right
+        self.direction = (self.direction + 1) % 4
+        danger_right = int(self._is_collision(self._next_head_pos()))
+        self.direction = (self.direction - 1) % 4
+
+        # Food direction
+        food_dx = np.sign(food_x - head_x)
+        food_dy = np.sign(food_y - head_y)
+
+        return np.array([
+        danger_straight,
+        danger_left,
+        danger_right,
+        int(self.direction == 0),
+        int(self.direction == 1),
+        int(self.direction == 2),
+        int(self.direction == 3),
+        food_dx,
+        food_dy
+        ], dtype=np.float32)
+
 
     def render(self):
         if not self.render_mode:

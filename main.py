@@ -1,34 +1,13 @@
 # main.py
+#import torch
 import pygame
 from snake_env import SnakeEnv
 from human_agent import HumanAgent
 from astar_agent import AStarAgent
-from rl_agent import QLearningAgent
 from safe_astar_agent import SafeAStarAgent
+from rl_agent import QLearningAgent
 
-def train_rl(episodes=2000):
-    env = SnakeEnv(render_mode=False)   # IMPORTANT: no rendering during training
-    agent = QLearningAgent()
 
-    scores = []
-
-    for ep in range(episodes):
-        state = env.reset()
-        done = False
-
-        while not done:
-            action = agent.act(state)  # epsilon-greedy
-            next_state, reward, done, _ = env.step(action)
-            agent.update(state, action, reward, next_state, done)
-            state = next_state
-
-        scores.append(env.score)
-
-        if (ep + 1) % 100 == 0:
-            avg = sum(scores[-100:]) / 100
-            print(f"Episode {ep+1}, average score: {avg:.2f}")
-
-    return agent
 
 def play(agent_type="human", trained_agent=None):
     env = SnakeEnv(render_mode=True)
@@ -41,7 +20,7 @@ def play(agent_type="human", trained_agent=None):
         agent = trained_agent if trained_agent is not None else QLearningAgent()
     elif agent_type == "safe_astar":
         agent = SafeAStarAgent(env)
-
+    
     else:
         raise ValueError("Unknown agent type")
 
@@ -50,7 +29,10 @@ def play(agent_type="human", trained_agent=None):
 
     while not done:
         env.render()
-        action = agent.act(state)
+        if agent_type == "rl":
+            action = agent.act(state, greedy=True)
+        else:
+            action = agent.act(state)
         state, reward, done, _ = env.step(action)
 
     # Game over screen
@@ -106,12 +88,46 @@ def test_agent(agent_type, trained_agent=None, games=50):
 
     return scores
 
+def train_rl(episodes=3000):
+    env = SnakeEnv(render_mode=False)
+    agent = QLearningAgent()
+
+    for ep in range(episodes):
+        state = env.get_state()
+        done = False
+
+        while not done:
+            action = agent.act(state)  # epsilon-greedy
+            next_state, reward, done, _ = env.step(action)
+            agent.update(state, action, reward, next_state, done)
+            state = next_state
+
+        if (ep + 1) % 100 == 0:
+            print(f"Episode {ep+1}, epsilon={agent.epsilon:.3f}")
+
+    return agent
+
+
 
 if __name__ == "__main__":
-    trained_agent = train_rl(episodes=3000)
 
-    rl_scores = test_agent("rl", trained_agent, games=100)
+    #Running Astar Agent tests
     astar_scores = test_agent("astar", games=100)
-    safe_astar_scores = test_agent("safe_astar", games=100)
+    #Visualize Astar Agent
+    play("astar")
 
+    #Running Safe Astar Agent tests
+    safe_astar_scores = test_agent("safe_astar", games=100)
+    #Visualize Safe Astar Agent
     play("safe_astar")
+
+    #Training and testing RL Agent
+    print("\nTraining RL agent...")
+    rl_agent = train_rl(episodes=3000)
+
+    print("\nTesting RL agent...")
+    rl_scores = test_agent("rl", trained_agent=rl_agent, games=100)
+
+    print("\nPlaying with RL agent...")
+    play("rl", trained_agent=rl_agent)
+
