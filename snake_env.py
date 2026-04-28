@@ -31,6 +31,7 @@ class SnakeEnv:
         self._place_food()
         self.done = False
         self.score = 0
+        self.steps_since_food = 0
         return self._get_state()
 
     def _place_food(self):
@@ -71,9 +72,16 @@ class SnakeEnv:
         if new_head == self.food:
             reward = 20       # strong reward
             self.score += 1
+            self.steps_since_food = 0
             self._place_food()
         else:
             self.snake.pop()
+            self.steps_since_food += 1
+
+        if self.steps_since_food > 50 + 10 * len(self.snake):
+            self.done = True
+            reward = -20      # penalty for stalling
+            return self.get_state(), reward, True, {}
 
         # -------------------------
         # Distance-based shaping
@@ -81,9 +89,11 @@ class SnakeEnv:
         new_dist = abs(new_head[0] - self.food[0]) + abs(new_head[1] - self.food[1])
 
         if new_dist < old_dist:
-            reward += 0.2     # moved closer
+            reward += 1.0     # moved closer
+        elif new_dist > old_dist:
+            reward -= 0.75     # moved away
         else:
-            reward -= 0.2     # moved away
+            reward -= 0.1
 
         # -------------------------
         # Survival reward
@@ -156,29 +166,39 @@ class SnakeEnv:
         danger_straight = int(self._is_collision(self._next_head_pos()))
 
         # Danger left
-        self.direction = (self.direction - 1) % 4
+        old_direction = self.direction
+        self.direction = (old_direction - 1) % 4
         danger_left = int(self._is_collision(self._next_head_pos()))
-        self.direction = (self.direction + 1) % 4
 
         # Danger right
-        self.direction = (self.direction + 1) % 4
+        self.direction = (old_direction + 1) % 4
         danger_right = int(self._is_collision(self._next_head_pos()))
-        self.direction = (self.direction - 1) % 4
+        self.direction = old_direction
 
-        # Food direction
-        food_dx = np.sign(food_x - head_x)
-        food_dy = np.sign(food_y - head_y)
+        # Current direction
+        dir_up = int(self.direction == UP)
+        dir_right = int(self.direction == RIGHT)
+        dir_down = int(self.direction == DOWN)
+        dir_left = int(self.direction == LEFT)
+
+        # Food location
+        food_up = int(food_y < head_y)
+        food_right = int(food_x > head_x)
+        food_down = int(food_y > head_y)
+        food_left = int(food_x < head_x)
 
         return np.array([
         danger_straight,
         danger_left,
         danger_right,
-        int(self.direction == 0),
-        int(self.direction == 1),
-        int(self.direction == 2),
-        int(self.direction == 3),
-        food_dx,
-        food_dy
+        dir_up,
+        dir_right,
+        dir_down,
+        dir_left,
+        food_up,
+        food_right,
+        food_down,
+        food_left
         ], dtype=np.float32)
 
 
@@ -221,4 +241,6 @@ class SnakeEnv:
         self.display.fill((0, 0, 0))
         self.display.blit(text, rect)
         pygame.display.update()
+
+
 

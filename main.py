@@ -101,12 +101,23 @@ def train_rl(episodes=9000):
     for ep in range(episodes):
         state = env.get_state()
         done = False
+    scores = []
+    maxSteps = 1000
 
-        while not done:
+    for ep in range(episodes):
+        state = env.reset()
+        done = False
+        steps = 0
+
+        while not done and steps < maxSteps:
             action = agent.act(state)  # epsilon-greedy
             next_state, reward, done, _ = env.step(action)
             agent.update(state, action, reward, next_state, done)
             state = next_state
+            steps += 1
+
+        agent.decay_epsilon()
+        scores.append(env.score)
 
         # Run test every N episodes
         if (ep + 1) % test_every == 0:
@@ -125,6 +136,9 @@ def train_rl(episodes=9000):
     plt.title("RL Agent Performance Over Time")
     plt.grid(True)
     plt.show()
+        #if (ep + 1) % 100 == 0:
+        #    avg_score = sum(scores[-100:]) / 100
+        #    print(f"Episode {ep+1}, epsilon={agent.epsilon:.3f}, average score={avg_score:.2f}")
 
     return agent
 
@@ -162,3 +176,4 @@ if __name__ == "__main__":
     print("\nPlaying with RL agent...")
     #play("rl", trained_agent=rl_agent)
 
+    play("rl", trained_agent=rl_agent)

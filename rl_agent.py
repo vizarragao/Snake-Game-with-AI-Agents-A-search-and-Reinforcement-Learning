@@ -3,15 +3,18 @@ import numpy as np
 from collections import defaultdict
 
 class QLearningAgent:
-    def __init__(self, n_actions=3, alpha=0.1, gamma=0.99, epsilon=0.01):
+    
+    def __init__(self, n_actions=3, alpha=0.1, gamma=0.95, epsilon=1.0, minEpsilon=0.02, epsilonDecay=0.997):
         self.n_actions = n_actions
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
-        self.Q = defaultdict(lambda: np.zeros(n_actions))
+        self.minEpsilon = minEpsilon
+        self.epsilonDecay = epsilonDecay
+        self.Q = defaultdict(lambda: np.full(n_actions, 1.0, dtype=np.float32))
 
     def _state_to_key(self, state):
-        return tuple(state.round(2))  # discretize a bit
+        return tuple(int(x) for x in state)  # discretize a bit
 
     def act(self, state, greedy=False):
         key = self._state_to_key(state)
@@ -26,3 +29,7 @@ class QLearningAgent:
         td_target = reward + self.gamma * best_next
         td_error = td_target - self.Q[key][action]
         self.Q[key][action] += self.alpha * td_error
+
+    def decay_epsilon(self):
+        self.epsilon = max(self.minEpsilon, self.epsilon * self.epsilonDecay)
+
