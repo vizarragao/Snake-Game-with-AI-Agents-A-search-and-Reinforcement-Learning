@@ -88,9 +88,15 @@ def test_agent(agent_type, trained_agent=None, games=50):
 
     return scores
 
-def train_rl(episodes=3000):
+import matplotlib.pyplot as plt
+
+def train_rl(episodes=9000):
     env = SnakeEnv(render_mode=False)
     agent = QLearningAgent()
+
+    avg_scores = []       # average test score every N episodes
+    intervals = []        # episode numbers for x-axis
+    test_every = 100      # run test every 100 episodes
 
     for ep in range(episodes):
         state = env.get_state()
@@ -102,10 +108,26 @@ def train_rl(episodes=3000):
             agent.update(state, action, reward, next_state, done)
             state = next_state
 
-        if (ep + 1) % 100 == 0:
-            print(f"Episode {ep+1}, epsilon={agent.epsilon:.3f}")
+        # Run test every N episodes
+        if (ep + 1) % test_every == 0:
+            scores = test_agent("rl", trained_agent=agent, games=20)
+            avg_score = sum(scores) / len(scores)
+
+            avg_scores.append(avg_score)
+            intervals.append(ep + 1)
+
+            print(f"Episode {ep+1}, Avg Test Score: {avg_score:.2f}")
+
+    # Plot learning curve
+    plt.plot(intervals, avg_scores, marker='o')
+    plt.xlabel("Training Episodes")
+    plt.ylabel("Average Score (Test Mode)")
+    plt.title("RL Agent Performance Over Time")
+    plt.grid(True)
+    plt.show()
 
     return agent
+
 
 
 
@@ -114,20 +136,29 @@ if __name__ == "__main__":
     #Running Astar Agent tests
     astar_scores = test_agent("astar", games=100)
     #Visualize Astar Agent
-    play("astar")
+    ##play("astar")
 
     #Running Safe Astar Agent tests
     safe_astar_scores = test_agent("safe_astar", games=100)
     #Visualize Safe Astar Agent
-    play("safe_astar")
+    ##play("safe_astar")
+    plt.figure(figsize=(10,5))
+    plt.plot(astar_scores, label="A* Score per Game")
+    plt.plot(safe_astar_scores, label="Safe A* Score per Game")
+    plt.xlabel("Game Number")
+    plt.ylabel("Score")
+    plt.title("A* vs Safe A* Performance Over 100 Games")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
     #Training and testing RL Agent
     print("\nTraining RL agent...")
-    rl_agent = train_rl(episodes=3000)
+    rl_agent = train_rl(episodes=9000)
 
     print("\nTesting RL agent...")
     rl_scores = test_agent("rl", trained_agent=rl_agent, games=100)
 
     print("\nPlaying with RL agent...")
-    play("rl", trained_agent=rl_agent)
+    #play("rl", trained_agent=rl_agent)
 

@@ -3,7 +3,7 @@ import numpy as np
 from collections import defaultdict
 
 class QLearningAgent:
-    def __init__(self, n_actions=3, alpha=0.1, gamma=0.99, epsilon=0.1):
+    def __init__(self, n_actions=3, alpha=0.1, gamma=0.99, epsilon=0.01):
         self.n_actions = n_actions
         self.alpha = alpha
         self.gamma = gamma
